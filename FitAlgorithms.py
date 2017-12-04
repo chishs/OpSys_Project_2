@@ -61,10 +61,65 @@ class FitAlgorithms:
 
         return (memory, timeIncrease, procStr)
 
-    def nextFit(memory, process, framesLeft):
-        # TODO: Fill this in
+    def nextFit(memory, process, framesLeft, prevProc):
+        framesReq = process.frames
+        frameCount = 0
+        timeIncrease = 0
+        startIndex = 0
+        added = False
+        procStr = ""
 
-        return memory
+        if framesReq > framesLeft:
+            return (memory, 0, procStr)
+
+        elif prevProc is not None:
+            # Find location of the previous process
+            for i in range(0, len(memory)):
+                if memory[i] == prevProc.label:
+                    while i < 256 and memory[i] != '.':
+                        i += 1
+                    startIndex = i
+
+                    # Get the length of the frame after the last place proc
+                    while i < 256 and memory[i] == '.':
+                        i+= 1
+                        frameCount += 1
+
+                    if frameCount >= framesReq:
+                        added = True
+                        for j in range(startIndex, startIndex+framesReq):
+                            memory[j] = process.label
+                        frameCount = 0
+                        startIndex = 0
+                        break
+
+                    elif i == 256:
+                        # Find the first spot from the top (Same as First-Fit)
+                        frameCount = 0
+                        startIndex = 0
+                        if i == 256:
+                            i = 0
+                        added = True
+                        temp = FitAlgorithms.firstFit(memory, process, framesLeft)
+                        return (temp[0], temp[1], temp[2])
+        else:
+            temp = FitAlgorithms.firstFit(memory, process, framesLeft)
+            return (temp[0], temp[1], temp[2])
+        if not added:
+            # Defragment
+            temp = FitAlgorithms.defragmentation(memory)
+            memory = temp[0]
+            timeIncrease = temp[1]
+            procStr = temp[2]
+
+            # Add the process
+            for i in range(0, len(memory)):
+                if memory[i] == '.':
+                    for j in range(0, process.frames):
+                        memory[i+j] = process.label
+                    break
+
+        return (memory, timeIncrease, procStr)
 
     def bestFit(memory, process, framesLeft):
         # TODO: Fill this in
@@ -112,7 +167,5 @@ class FitAlgorithms:
             procStr += procMoved[i]
             if i != len(procMoved) - 1:
                 procStr += " "
-
-        print(procStr)
 
         return (memory, timeIncrease, procStr)
