@@ -178,9 +178,23 @@ class FitAlgorithms:
         return (memory, timeIncrease, procStr)
 
     def nonContiguous(memory, process, framesLeft):
-        #TODO: Fill th== in
+        framesReq = process.frames
+        frameCount = 0
+        timeIncrease = 0
+        procStr = ""
 
-        return memory
+        if framesReq > framesLeft:
+            return (memory, 0, "")
+
+        else:
+            frames = 0
+            i = 0
+            while frames < framesReq and i < 256:
+                if memory[i] == ".":
+                    memory[i] = process.label
+                    frames += 1
+                i += 1
+        return (memory, 0, "")
 
     def defragmentation(memory):
         timeIncrease = 0

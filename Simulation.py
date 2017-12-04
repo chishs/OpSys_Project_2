@@ -64,6 +64,10 @@ class Simulation:
 
                 elif self.fitAlgorithm == "Best-Fit":
                     print("time {0}ms: Simulator started (Contiguous -- Best-Fit)".format(self.time))
+
+                elif self.fitAlgorithm == "Non-contiguous":
+                    print("time {0}ms: Simulator started (Non-contiguous)".format(self.time))
+
                 first = False
 
             # Add any new processes
@@ -84,6 +88,8 @@ class Simulation:
                     self.cleanMemory(process)
                     print("time {0}ms: Process {1} removed".format(self.time, process.label))
                     self.printMemory()
+                    if self.fitAlgorithm == "Non-contiguous":
+                        self.printPageTable()
                     procToRemove.append(process)
 
             for process in procToRemove:
@@ -100,15 +106,15 @@ class Simulation:
                     elif self.fitAlgorithm == "Next-Fit":
                         temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, prevProc)
                     elif self.fitAlgorithm == "Best-Fit":
-                        print(self.framesLeft)
                         temp = FitAlgorithms.bestFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Non-contiguous":
                         temp = FitAlgorithms.nonContiguous(self.memory, process, self.framesLeft)
+
                     self.memory = temp[0]
 
                     # Handle the case where defragmentation may occur
                     if temp[1] > 0:
-                        print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                        print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Cannot place process {1} -- starting defragmentation".format(self.time, process.label))
 
                         procToRemove.append(process)
@@ -138,25 +144,30 @@ class Simulation:
 
                         print("time {0}ms: Placed process {1}".format(self.time, process.label))
                         self.printMemory()
+                        if self.fitAlgorithm == "Non-contiguous":
+                            self.printPageTable()
 
                         prevProc = process
 
                         # Make up for the 1 increase at the end
                         self.time -= 1
 
-                    elif self.framesLeft > process.frames:
-                        print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                    elif self.framesLeft >= process.frames:
+                        print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Placed process {1}:".format(self.time, process.label))
 
                         prevProc = process
 
                         self.printMemory()
+                        if self.fitAlgorithm == "Non-contiguous":
+                            self.printPageTable()
+
                         self.framesLeft -= process.frames
                         procToRemove.append(process)
                         runningPool.append(process)
 
                     else:
-                        print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                        print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Cannot place process {1} -- skipped!".format(self.time, process.label))
                         procToRemove.append(process)
 
@@ -170,6 +181,15 @@ class Simulation:
             procToRemove = []
 
             self.time += 1
+
+        # Account for the last time increment
+        if self.fitAlgorithm != "Non-contiguous":
+            print("time {0}ms: Simulator ended (Contiguous -- {1})".format(self.time-1, self.fitAlgorithm))
+            print("\n")
+
+        else:
+            print("time {0}ms: Simulator ended (Non-contiguous)".format(self.time-1, self.fitAlgorithm))
+            print("\n")
 
     """
         Clean memory and add frames back to the frame counter (framesLeft)
@@ -215,3 +235,45 @@ class Simulation:
                 break
 
         self.framesLeft = frames
+
+    def printPageTable(self):
+        # Hold each individual page table string
+        procPageStrings = 26*['']
+        # Hold index data for each process
+        procPageLocs = []
+
+        # Create an entry for each possible process (26 letters)
+        for i in range(0, 26):
+            procPageLocs.append([])
+
+        # Add the index to the process's current indexes
+        for i in range(0, 256):
+            if self.memory[i] != ".":
+                procPageLocs[ord(self.memory[i])%65].append(i)
+
+        # Create the process strings for matching submitty output
+        for i in range(0, 26):
+            procStr = ""
+            if len(procPageLocs[i]) > 0:
+                procStr += "{0}: ".format(chr(i+65))
+                j = 0
+                # Add each individual page, frame combination to the process's string
+                while j < len(procPageLocs[i]):
+                    procStr += "[{0}, {1}]".format(i, procPageLocs[i][j])
+                    # Add a line break every 10 entries
+                    if (j + 1) % 10 == 0:
+                        procStr += "\n"
+                    # Add a space if not the last entry
+                    if j != len(procPageLocs[i]) - 1:
+                        procStr += " "
+                    j += 1
+
+                # Add the string
+                procPageStrings[i] = procStr
+
+        # Print the table
+        print("PAGE TABLE [page,frame]:")
+
+        for i in range(0, 26):
+            if len(procPageStrings[i]) > 0:
+                print(procPageStrings[i])
