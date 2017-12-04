@@ -122,9 +122,60 @@ class FitAlgorithms:
         return (memory, timeIncrease, procStr)
 
     def bestFit(memory, process, framesLeft):
-        # TODO: Fill this in
+        framesReq = process.frames
+        frameCount = 0
+        timeIncrease = 0
+        startIndex = 0
+        added = False
+        procStr = ""
+        freePartitions = []
 
-        return memory
+        if framesReq > framesLeft:
+            return (memory, 0, procStr)
+
+        else:
+            # Create a way to find the smallest free partition process will fit in
+            j = 0
+            while j < 256:
+                if memory[j] == '.':
+                    startIndex = j
+                    while j < 256 and memory[j] == '.':
+                        j += 1
+                        frameCount += 1
+                    freePartitions.append((startIndex, frameCount))
+                    startIndex = 0
+                    frameCount = 0
+                else:
+                    j += 1
+            j = 0
+
+            minPartition = (0, -1)
+            for i in range(0, len(freePartitions)):
+                frameDif = freePartitions[i][1] - process.frames
+                if (frameDif >= 0 and frameDif < minPartition[1]) or minPartition[1] == -1:
+                    minPartition = freePartitions[i]
+                    added = True
+
+            if minPartition[1] < process.frames:
+                # Defragment
+                temp = FitAlgorithms.defragmentation(memory)
+                memory = temp[0]
+                timeIncrease = temp[1]
+                procStr = temp[2]
+
+                # Add the process
+                for i in range(0, len(memory)):
+                    if memory[i] == '.':
+                        for k in range(0, process.frames):
+                            memory[i+k] = process.label
+                        break
+
+            else:
+                startIndex = minPartition[0]
+                for i in range(startIndex, startIndex + process.frames):
+                    memory[i] = process.label
+
+        return (memory, timeIncrease, procStr)
 
     def nonContiguous(memory, process, framesLeft):
         #TODO: Fill th== in

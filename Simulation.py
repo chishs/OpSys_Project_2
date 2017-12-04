@@ -100,6 +100,7 @@ class Simulation:
                     elif self.fitAlgorithm == "Next-Fit":
                         temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, prevProc)
                     elif self.fitAlgorithm == "Best-Fit":
+                        print(self.framesLeft)
                         temp = FitAlgorithms.bestFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Non-contiguous":
                         temp = FitAlgorithms.nonContiguous(self.memory, process, self.framesLeft)
