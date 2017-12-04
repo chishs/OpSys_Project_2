@@ -26,3 +26,8 @@ class FitAlgorithms:
         #TODO: Fill this in
 
     return memory
+
+    def defragmentation(memory):
+        # TODO: Fill this in
+        
+    return memory
