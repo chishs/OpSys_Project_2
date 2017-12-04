@@ -54,11 +54,11 @@ class Simulation:
         runningPool = []
         while len(self.procList) > 0 or len(runningPool) > 0:
             if first:
-                if self.fitAlgorithm == "Next-Fit":
-                    print("time {0}ms: Simulator started (Contiguous -- Next-Fit)".format(self.time))
-
-                elif self.fitAlgorithm == "First-Fit":
+                if self.fitAlgorithm == "First-Fit":
                     print("time {0}ms: Simulator started (Contiguous -- First-Fit)".format(self.time))
+
+                elif self.fitAlgorithm == "Next-Fit":
+                    print("time {0}ms: Simulator started (Contiguous -- Next-Fit)".format(self.time))
 
                 elif self.fitAlgorithm == "Best-Fit":
                     print("time {0}ms: Simulator started (Contiguous -- Best-Fit)".format(self.time))
@@ -91,8 +91,8 @@ class Simulation:
 
             if not self.queue.isEmpty():
                 for process in self.queue.Q:
-                    if self.fitAlgorithm == "Next-Fit":
-                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft)
+                    if self.fitAlgorithm == "First-Fit":
+                        temp = FitAlgorithms.firstFit(self.memory, process, self.framesLeft)
                         self.memory = temp[0]
                         # Handle the case where defragmentation may occur
                         if temp[1] > 0:
@@ -110,10 +110,22 @@ class Simulation:
 
                             self.time += temp[1]
 
+
                             # TODO: Fix defragmentation to return the frames moved as well as the number of
                             # frames moved
 
-                            # print("time {0}ms: Defragmentation complete -- (moved {1} frames: )")
+                            print("time {0}ms: Defragmentation complete -- (moved {1} frames: {2})".format(self.time, temp[1], temp[2]))
+                            tempMemory = 256 * ['.']
+                            for i in range(0, 256):
+                                tempMemory[i] = self.memory[i]
+                            for i in range(0, len(tempMemory)):
+                                if tempMemory[i] == process.label:
+                                    tempMemory[i] = '.'
+
+                            self.hackPrint(tempMemory)
+
+                            print("time {0}ms: Placed process {1}".format(self.time, process.label))
+                            self.printMemory()
 
                         elif self.framesLeft > process.frames:
                             print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
@@ -128,8 +140,8 @@ class Simulation:
                             print("time {0}ms: Cannot place process {1} -- skipped!".format(self.time, process.label))
                             procToRemove.append(process)
 
-                    elif self.fitAlgorithm == "First-Fit":
-                        temp = FitAlgorithms.firstFit(self.memory, process, self.framesLeft)
+                    elif self.fitAlgorithm == "Next-Fit":
+                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft)
                         self.memory = temp[0]
 
                         # Handle the case where defragmentation may occur
@@ -190,6 +202,18 @@ class Simulation:
         for x in range(0, 8):
             for y in range(0, 32):
                 sys.stdout.write(self.memory[i])
+                i += 1
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+        print('================================')
+
+    # Hack to print the memory after a defragmentation
+    def hackPrint(self, memory):
+        i = 0
+        print('================================')
+        for x in range(0, 8):
+            for y in range(0, 32):
+                sys.stdout.write(memory[i])
                 i += 1
             sys.stdout.flush()
             sys.stdout.write('\n')

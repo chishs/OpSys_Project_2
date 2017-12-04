@@ -8,18 +8,19 @@
 
 class FitAlgorithms:
 
-    def nextFit(memory, process, framesLeft):
+    def firstFit(memory, process, framesLeft):
         framesReq = process.frames
         frameCount = 0
         startIndex = 0
         added = False
+        procStr = ""
 
         # Tell simulation how much time to add if defragmenting
         timeIncrease = 0
 
         # Make sure there is enough space
         if framesLeft < framesReq:
-            return (memory, 0)
+            return (memory, 0, "")
 
         # Try to add the process without defragmentation
         for i in range(0, len(memory)):
@@ -50,6 +51,7 @@ class FitAlgorithms:
             temp = FitAlgorithms.defragmentation(memory)
             memory = temp[0]
             timeIncrease = temp[1]
+            procStr = temp[2]
 
             for i in range(0, len(memory)):
                 if memory[i] == '.':
@@ -57,9 +59,9 @@ class FitAlgorithms:
                         memory[i+j] = process.label
                     break
 
-        return (memory, timeIncrease)
+        return (memory, timeIncrease, procStr)
 
-    def firstFit(memory, process, framesLeft):
+    def nextFit(memory, process, framesLeft):
         # TODO: Fill this in
 
         return memory
@@ -77,6 +79,17 @@ class FitAlgorithms:
     def defragmentation(memory):
         timeIncrease = 0
         freeSpotsAtEnd = 0
+        procMoved = []
+        # Calculate time increase
+        for i in range(0, len(memory)):
+            if memory[i] != '.':
+                if i > 0 and memory[i-1] == '.':
+                    while memory[i] != '.':
+                        if not memory[i] in procMoved:
+                            procMoved.append(memory[i])
+                        timeIncrease += 1
+                        i += 1
+
         # Calculate the number of free spots at end of memory
         for i in range(len(memory)-1, 0):
             if memory[i] == '.':
@@ -91,12 +104,15 @@ class FitAlgorithms:
 
         emptyFrames = (256-len(nonEmptyFrames))*['.']
 
-        # Calculate the timeIncrease
-        # timeIncrease = 256 - nonEmptyFrames - framesAtEnd
-        # (All the frames that had to be moved)
-
-        timeIncrease = 256 - len(nonEmptyFrames) - freeSpotsAtEnd
-
         memory = nonEmptyFrames + emptyFrames
 
-        return (memory, timeIncrease)
+        procStr = ""
+        # Generate the moved processes string
+        for i in range(0, len(procMoved)):
+            procStr += procMoved[i]
+            if i != len(procMoved) - 1:
+                procStr += " "
+
+        print(procStr)
+
+        return (memory, timeIncrease, procStr)
