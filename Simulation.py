@@ -18,7 +18,6 @@ class Simulation:
         self.getProcesses()
         self.startSim()
 
-
     """
         Process the .txt file for the process information
     """
@@ -76,6 +75,10 @@ class Simulation:
 
                     elif self.fitAlgorithm is "Non-contiguous":
                         self.memory = FitAlgorithms.nonContiguous(memory, process)
+
+            # TODO: Potentially write a "next-interesting event" version of this
+            # and only increase by the next event. Possibly implement a function to
+            # calculate the next event and store that as self.nextEvent.
 
             # Increase by one time-step
             self.time += 1
