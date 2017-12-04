@@ -1,5 +1,6 @@
 from Process import *
 from Queue import *
+from FitAlgorithms import *
 import sys
 
 class Simulation:
@@ -25,7 +26,7 @@ class Simulation:
         procList = []
         test = open(self.inputFile, "r+")
 
-        # Add the processes to the procList
+        # Add the processes to the procL==t
         for line in test:
             if (line[0] != "#" and len(line) > 1):
                 line = line.replace("\n", "")
@@ -42,54 +43,142 @@ class Simulation:
     """
         Simuation implemented as a state machine:
             1) Adds new processes if current time = arrival time of any getProcesses
-            2) Removes any processes from memory if they're finished (Clean up memory)
+            2) Removes any processes from memory if they're fin==hed (Clean up memory)
             3) Adds processes to memory (Relies on FitAlgorithms class)
     """
     # TODO:
     # Implement FitAlgorithms class
     def startSim(self):
-        while len(self.procList) > 0:
+        first = True
+        procToRemove = []
+        runningPool = []
+        while len(self.procList) > 0 or len(runningPool) > 0:
+            if first:
+                if self.fitAlgorithm == "Next-Fit":
+                    print("time {0}ms: Simulator started (Contiguous -- Next-Fit)".format(self.time))
+
+                elif self.fitAlgorithm == "First-Fit":
+                    print("time {0}ms: Simulator started (Contiguous -- First-Fit)".format(self.time))
+
+                elif self.fitAlgorithm == "Best-Fit":
+                    print("time {0}ms: Simulator started (Contiguous -- Best-Fit)".format(self.time))
+                first = False
+
             # Add any new processes
             for process in self.procList:
-                if process.arrivalTime is self.time:
+                if process.arrivalTime <= self.time:
                     self.queue.enqueue(process)
-                    self.procList.remove(process)
+                    procToRemove.append(process)
+
+            for process in procToRemove:
+                self.procList.remove(process)
+
+            procToRemove = []
 
             # Remove any processes / clean up memory if they're done
-            for process in self.queue.Q:
+            for process in runningPool:
                 endTime = process.arrivalTime + process.runTime
-                if endTime is self.time:
-                    self.cleanMemory(self.memory, process)
+                if endTime <= self.time:
+                    self.cleanMemory(process)
+                    print("time {0}ms: Process {1} removed".format(self.time, process.label))
+                    self.printMemory()
+                    procToRemove.append(process)
+
+            for process in procToRemove:
+                runningPool.remove(process)
+
+            procToRemove = []
 
             if not self.queue.isEmpty():
                 for process in self.queue.Q:
-                    # TODO: Write the algorithm handler class
-                    if self.fitAlgorithm is "Next-Fit":
-                        self.memory = FitAlgorithms.nextFit(memory, process)
+                    if self.fitAlgorithm == "Next-Fit":
+                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft)
+                        self.memory = temp[0]
+                        # Handle the case where defragmentation may occur
+                        if temp[1] > 0:
+                            print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                            print("time {0}ms: Cannot place process {1} -- starting defragmentation".format(self.time, process.label))
 
-                    elif self.fitAlgorithm is "First-Fit":
-                        self.memory = FitAlgorithms.firstFit(memory, process)
+                            procToRemove.append(process)
+                            runningPool.append(process)
 
-                    elif self.fitAlgorithm is "Best-Fit":
-                        self.memory = FitAlgorithm.bestFit(memory, process)
+                            for proc in self.procList:
+                                proc.arrivalTime += temp[1]
 
-                    elif self.fitAlgorithm is "Non-contiguous":
-                        self.memory = FitAlgorithms.nonContiguous(memory, process)
+                            # Recalculate the number of frames left
+                            self.framesAfterDefrag()
 
-            # TODO: Potentially write a "next-interesting event" version of this
+                            self.time += temp[1]
+
+                            # TODO: Fix defragmentation to return the frames moved as well as the number of
+                            # frames moved
+
+                            # print("time {0}ms: Defragmentation complete -- (moved {1} frames: )")
+
+                        elif self.framesLeft > process.frames:
+                            print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                            print("time {0}ms: Placed process {1}:".format(self.time, process.label))
+                            self.printMemory()
+                            self.framesLeft -= process.frames
+                            procToRemove.append(process)
+                            runningPool.append(process)
+
+                        else:
+                            print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                            print("time {0}ms: Cannot place process {1} -- skipped!".format(self.time, process.label))
+                            procToRemove.append(process)
+
+                    elif self.fitAlgorithm == "First-Fit":
+                        temp = FitAlgorithms.firstFit(self.memory, process, self.framesLeft)
+                        self.memory = temp[0]
+
+                        # Handle the case where defragmentation may occur
+                        # Add the time to all pending arrivalTime
+                        if temp[1] > 0:
+                            for process in self.procList:
+                                process.arrivalTime += temp[1]
+                            self.time += temp[1]
+
+                        print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                        print("time {0}ms: Placed process {1}:".format(self.time, process.label))
+                        self.printMemory()
+
+                    elif self.fitAlgorithm == "Best-Fit":
+                        temp = FitAlgorithms.bestFit(self.memory, process, self.framesLeft)
+                        self.memory = temp[0]
+                        # Handle the case where defragmentation may occur
+                        if temp[1] > 0:
+                            for process in self.procList:
+                                process.arrivalTime += temp[1]
+                            self.time += temp[1]
+
+                        print("time {0}ms: Process {1} arrived (requiring {2} frames)".format(self.time, process.label, process.frames))
+                        print("time {0}ms: Placed process {1}:".format(self.time, process.label))
+                        self.printMemory()
+
+                    elif self.fitAlgorithm == "Non-contiguous":
+                        temp = FitAlgorithms.nonContiguous(self.memory, process, self.framesLeft)
+                        self.memory = temp[0]
+                        #TODO: Handle printing (page, frame) mapping
+
+            # TODO: Potentially write a "next-interesting event" version of th==
             # and only increase by the next event. Possibly implement a function to
             # calculate the next event and store that as self.nextEvent.
 
-            # Increase by one time-step
+            for process in procToRemove:
+                self.queue.Q.remove(process)
+
+            procToRemove = []
+
             self.time += 1
 
     """
         Clean memory and add frames back to the frame counter (framesLeft)
     """
     def cleanMemory(self, process):
-        for process in self.memory:
-            if self.memory is process.label:
-                self.memory = '.'
+        for i in range(0, len(self.memory)):
+            if self.memory[i] == process.label:
+                self.memory[i] = '.'
         self.framesLeft += process.frames
 
     """
@@ -105,3 +194,13 @@ class Simulation:
             sys.stdout.flush()
             sys.stdout.write('\n')
         print('================================')
+
+    def framesAfterDefrag(self):
+        frames = 0
+        for i in range(len(self.memory)-1, 0):
+            if self.memory[i] == '.':
+                frames += 1
+            else:
+                break
+
+        self.framesLeft = frames
