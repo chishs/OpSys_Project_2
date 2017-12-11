@@ -14,7 +14,9 @@ class Simulation:
         self.time = 0
         self.framesLeft = 256
         self.procList = []
-
+        self.lastRemoved = None
+        self.prevProc = None
+        self.runningPool = []
         # Prepare and start the simulation
         self.getProcesses()
         self.startSim()
@@ -51,10 +53,11 @@ class Simulation:
     def startSim(self):
         first = True
         procToRemove = []
-        runningPool = []
-        prevProc = None
+        self.runningPool = []
+        self.prevProc = None
+        self.lastRemoved = None
 
-        while len(self.procList) > 0 or len(runningPool) > 0:
+        while len(self.procList) > 0 or len(self.runningPool) > 0:
             if first:
                 if self.fitAlgorithm == "First-Fit":
                     print("time {0}ms: Simulator started (Contiguous -- First-Fit)".format(self.time))
@@ -82,7 +85,7 @@ class Simulation:
             procToRemove = []
 
             # Remove any processes / clean up memory if they're done
-            for process in runningPool:
+            for process in self.runningPool:
                 endTime = process.arrivalTime + process.runTime
                 if endTime <= self.time:
                     self.cleanMemory(process)
@@ -91,11 +94,13 @@ class Simulation:
                     if self.fitAlgorithm == "Non-contiguous":
                         self.printPageTable()
                     procToRemove.append(process)
+                    if self.prevProc is not None and self.prevProc.label == process.label:
+                        self.lastRemoved = process
 
             for process in procToRemove:
-                runningPool.remove(process)
-                if len(runningPool) > 0:
-                    prevProc = runningPool[len(runningPool)-1]
+                self.runningPool.remove(process)
+                if len(self.runningPool) > 0:
+                    self.prevProc = self.runningPool[len(self.runningPool)-1]
 
             procToRemove = []
 
@@ -104,7 +109,7 @@ class Simulation:
                     if self.fitAlgorithm == "First-Fit":
                         temp = FitAlgorithms.firstFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Next-Fit":
-                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, prevProc)
+                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, self.prevProc)
                     elif self.fitAlgorithm == "Best-Fit":
                         temp = FitAlgorithms.bestFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Non-contiguous":
@@ -118,12 +123,12 @@ class Simulation:
                         print("time {0}ms: Cannot place process {1} -- starting defragmentation".format(self.time, process.label))
 
                         procToRemove.append(process)
-                        runningPool.append(process)
+                        self.runningPool.append(process)
 
                         for proc in self.procList:
                             proc.arrivalTime += temp[1]
 
-                        for proc in runningPool:
+                        for proc in self.runningPool:
                             proc.runTime += temp[1]
 
                         # Recalculate the number of frames left
@@ -150,7 +155,7 @@ class Simulation:
                         if self.fitAlgorithm == "Non-contiguous":
                             self.printPageTable()
 
-                        prevProc = process
+                        self.prevProc = process
 
                         # Make up for the 1 increase at the end
                         self.time -= 1
@@ -159,7 +164,7 @@ class Simulation:
                         print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Placed process {1}:".format(self.time, process.label))
 
-                        prevProc = process
+                        self.prevProc = process
 
                         self.printMemory()
                         if self.fitAlgorithm == "Non-contiguous":
@@ -167,13 +172,16 @@ class Simulation:
 
                         self.framesLeft -= process.frames
                         procToRemove.append(process)
-                        runningPool.append(process)
+                        self.runningPool.append(process)
 
                     else:
                         print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Cannot place process {1} -- skipped!".format(self.time, process.label))
                         procToRemove.append(process)
                         self.printMemory()
+
+                        if self.fitAlgorithm == "Non-contiguous":
+                            self.printPageTable()
 
             # TODO: Potentially write a "next-interesting event" version of th==
             # and only increase by the next event. Possibly implement a function to
@@ -189,7 +197,7 @@ class Simulation:
         # Account for the last time increment
         if self.fitAlgorithm != "Non-contiguous":
             print("time {0}ms: Simulator ended (Contiguous -- {1})".format(self.time-1, self.fitAlgorithm))
-
+            print("\n")
         else:
             print("time {0}ms: Simulator ended (Non-contiguous)".format(self.time-1, self.fitAlgorithm))
 
@@ -215,6 +223,27 @@ class Simulation:
             sys.stdout.flush()
             sys.stdout.write('\n')
         print('================================')
+        # else:
+        #     print('================================')
+        #     for x in range(0, 8):
+        #         for y in range(0, 32):
+        #             if i <= 255 - self.lastRemoved.frames:
+        #                 if self.runningPool[len(self.runningPool)-1].label == memory[i]:
+        #                     while i+1 < 255 and memory[i+1] != self.runningPool[len(self.runningPool)-1].label:
+        #                         lastLoc = i
+        #                         sys.stdout.write(self.memory[i])
+        #                         i += 1
+        #                 else:
+        #                     sys.stdout.write(self.memory[i])
+        #                     i += 1
+        #
+        #                 if lastLoc != -1:
+        #                     for j in range(0, self.lastRemoved.frames):
+        #                         sys.stdout.write('.')
+        #
+        #         sys.stdout.flush()
+        #         sys.stdout.write('\n')
+        #     print('================================')
 
     # Hack to print the memory after a defragmentation
     def hackPrint(self, memory):
