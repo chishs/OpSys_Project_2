@@ -21,7 +21,4 @@ class Process():
 
     # For debugging
     def __repr__(self):
-        return(str('Label: {0}'.format(self.label),
-        'Frames Required: {0}'.format(self.frames),
-        'Arrival time: {0}'.format(self.arrivalTime),
-        'Run time: {0}'.format(self.runTime)))
+        return self.label

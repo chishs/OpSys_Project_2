@@ -17,8 +17,8 @@ class Queue:
     def enqueue(self, process):
         self.Q.append(process)
 
-    def dequeue(self, process):
-        self.data.pop(0)
+    def dequeue(self):
+        self.Q.pop(0)
 
     def isEmpty(self):
         return not len(self.Q) != 0

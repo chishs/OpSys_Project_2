@@ -26,9 +26,9 @@ class Simulation:
         procList = []
         test = open(self.inputFile, "r+")
 
-        # Add the processes to the procL==t
+        # Add the processes to the procList
         for line in test:
-            if (line[0] != "#" and len(line) > 1):
+            if (line[0] != "#" and len(line) > 4):
                 line = line.replace("\n", "")
                 line = line.split(" ")
                 label = line[0]
@@ -86,7 +86,7 @@ class Simulation:
                 endTime = process.arrivalTime + process.runTime
                 if endTime <= self.time:
                     self.cleanMemory(process)
-                    print("time {0}ms: Process {1} removed".format(self.time, process.label))
+                    print("time {0}ms: Process {1} removed:".format(self.time, process.label))
                     self.printMemory()
                     if self.fitAlgorithm == "Non-contiguous":
                         self.printPageTable()
@@ -123,6 +123,9 @@ class Simulation:
                         for proc in self.procList:
                             proc.arrivalTime += temp[1]
 
+                        for proc in runningPool:
+                            proc.runTime += temp[1]
+
                         # Recalculate the number of frames left
                         self.framesAfterDefrag()
 
@@ -132,7 +135,7 @@ class Simulation:
                         # TODO: Fix defragmentation to return the frames moved as well as the number of
                         # frames moved
 
-                        print("time {0}ms: Defragmentation complete -- (moved {1} frames: {2})".format(self.time, temp[1], temp[2]))
+                        print("time {0}ms: Defragmentation complete (moved {1} frames: {2})".format(self.time, temp[1], temp[2]))
                         tempMemory = 256 * ['.']
                         for i in range(0, 256):
                             tempMemory[i] = self.memory[i]
@@ -142,7 +145,7 @@ class Simulation:
 
                         self.hackPrint(tempMemory)
 
-                        print("time {0}ms: Placed process {1}".format(self.time, process.label))
+                        print("time {0}ms: Placed process {1}:".format(self.time, process.label))
                         self.printMemory()
                         if self.fitAlgorithm == "Non-contiguous":
                             self.printPageTable()
@@ -170,6 +173,7 @@ class Simulation:
                         print("time {0}ms: Process {1} arrived (requires {2} frames)".format(self.time, process.label, process.frames))
                         print("time {0}ms: Cannot place process {1} -- skipped!".format(self.time, process.label))
                         procToRemove.append(process)
+                        self.printMemory()
 
             # TODO: Potentially write a "next-interesting event" version of th==
             # and only increase by the next event. Possibly implement a function to
@@ -185,11 +189,9 @@ class Simulation:
         # Account for the last time increment
         if self.fitAlgorithm != "Non-contiguous":
             print("time {0}ms: Simulator ended (Contiguous -- {1})".format(self.time-1, self.fitAlgorithm))
-            print("\n")
 
         else:
             print("time {0}ms: Simulator ended (Non-contiguous)".format(self.time-1, self.fitAlgorithm))
-            print("\n")
 
     """
         Clean memory and add frames back to the frame counter (framesLeft)
@@ -258,13 +260,15 @@ class Simulation:
                 procStr += "{0}: ".format(chr(i+65))
                 j = 0
                 # Add each individual page, frame combination to the process's string
+                k = -1
                 while j < len(procPageLocs[i]):
-                    procStr += "[{0}, {1}]".format(i, procPageLocs[i][j])
+                    k += 1
+                    procStr += "[{0},{1}]".format(k, procPageLocs[i][j])
                     # Add a line break every 10 entries
                     if (j + 1) % 10 == 0:
                         procStr += "\n"
                     # Add a space if not the last entry
-                    if j != len(procPageLocs[i]) - 1:
+                    elif j != len(procPageLocs[i]) - 1:
                         procStr += " "
                     j += 1
 

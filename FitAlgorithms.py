@@ -231,6 +231,6 @@ class FitAlgorithms:
         for i in range(0, len(procMoved)):
             procStr += procMoved[i]
             if i != len(procMoved) - 1:
-                procStr += " "
+                procStr += ", "
 
         return (memory, timeIncrease, procStr)
