@@ -61,7 +61,7 @@ class FitAlgorithms:
 
         return (memory, timeIncrease, procStr)
 
-    def nextFit(memory, process, framesLeft, prevProc):
+    def nextFit(memory, process, framesLeft, prevProc, nextIndex):
         framesReq = process.frames
         frameCount = 0
         timeIncrease = 0
@@ -69,42 +69,45 @@ class FitAlgorithms:
         added = False
         procStr = ""
 
+        if nextIndex is None:
+            nextIndex = 0
+
         if framesReq > framesLeft:
             return (memory, 0, procStr)
 
-        elif prevProc is not None:
+        elif prevProc is not None and nextIndex < 256:
             # Find location of the previous process
-            for i in range(0, len(memory)):
-                if memory[i] == prevProc.label:
-                    while i < 256 and memory[i] != '.':
-                        i += 1
-                    startIndex = i
+            for i in range(nextIndex, len(memory)):
+                startIndex = i
+                frameCount = 0
+                # Get the length of the frame after the last place proc
+                while i < 256 and memory[i] == '.':
+                    i += 1
+                    frameCount += 1
 
-                    # Get the length of the frame after the last place proc
-                    while i < 256 and memory[i] == '.':
-                        i+= 1
-                        frameCount += 1
+                if frameCount >= framesReq:
+                    added = True
+                    for j in range(startIndex, startIndex+framesReq):
+                        memory[j] = process.label
+                    frameCount = 0
+                    startIndex = 0
 
-                    if frameCount >= framesReq:
-                        added = True
-                        for j in range(startIndex, startIndex+framesReq):
-                            memory[j] = process.label
-                        frameCount = 0
-                        startIndex = 0
-                        break
+                    return (memory, timeIncrease, procStr)
 
-                    elif i == 256:
-                        # Find the first spot from the top (Same as First-Fit)
-                        frameCount = 0
-                        startIndex = 0
-                        if i == 256:
-                            i = 0
-                        added = True
-                        temp = FitAlgorithms.firstFit(memory, process, framesLeft)
-                        return (temp[0], temp[1], temp[2])
-        else:
+                elif i == 256:
+                    # Find the first spot from the top (Same as First-Fit)
+                    frameCount = 0
+                    startIndex = 0
+                    if i == 256:
+                        i = 0
+                    added = True
+                    temp = FitAlgorithms.firstFit(memory, process, framesLeft)
+                    return (temp[0], temp[1], temp[2])
+
+        if framesLeft > framesReq:
             temp = FitAlgorithms.firstFit(memory, process, framesLeft)
             return (temp[0], temp[1], temp[2])
+
         if not added:
             # Defragment
             temp = FitAlgorithms.defragmentation(memory)
@@ -152,7 +155,7 @@ class FitAlgorithms:
             minPartition = (0, -1)
             for i in range(0, len(freePartitions)):
                 frameDif = freePartitions[i][1] - process.frames
-                if (frameDif >= 0 and frameDif < minPartition[1]) or minPartition[1] == -1:
+                if (frameDif >= 0 and frameDif < minPartition[1]) or (minPartition[1] == -1 and frameDif >= 0):
                     minPartition = freePartitions[i]
                     added = True
 
@@ -204,7 +207,7 @@ class FitAlgorithms:
         for i in range(0, len(memory)):
             if memory[i] != '.':
                 if i > 0 and memory[i-1] == '.':
-                    while memory[i] != '.':
+                    while i < 256 and memory[i] != '.':
                         if not memory[i] in procMoved:
                             procMoved.append(memory[i])
                         timeIncrease += 1

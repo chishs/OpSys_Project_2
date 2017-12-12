@@ -17,6 +17,7 @@ class Simulation:
         self.lastRemoved = None
         self.prevProc = None
         self.runningPool = []
+        self.nextIndex = None
         # Prepare and start the simulation
         self.getProcesses()
         self.startSim()
@@ -54,6 +55,7 @@ class Simulation:
         first = True
         procToRemove = []
         self.runningPool = []
+        # Pointer to location of previous process
         self.prevProc = None
         self.lastRemoved = None
 
@@ -99,8 +101,6 @@ class Simulation:
 
             for process in procToRemove:
                 self.runningPool.remove(process)
-                if len(self.runningPool) > 0:
-                    self.prevProc = self.runningPool[len(self.runningPool)-1]
 
             procToRemove = []
 
@@ -109,7 +109,7 @@ class Simulation:
                     if self.fitAlgorithm == "First-Fit":
                         temp = FitAlgorithms.firstFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Next-Fit":
-                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, self.prevProc)
+                        temp = FitAlgorithms.nextFit(self.memory, process, self.framesLeft, self.prevProc, self.nextIndex)
                     elif self.fitAlgorithm == "Best-Fit":
                         temp = FitAlgorithms.bestFit(self.memory, process, self.framesLeft)
                     elif self.fitAlgorithm == "Non-contiguous":
@@ -156,6 +156,7 @@ class Simulation:
                             self.printPageTable()
 
                         self.prevProc = process
+                        self.nextIndex = self.getPrevProcIndex()
 
                         # Make up for the 1 increase at the end
                         self.time -= 1
@@ -165,6 +166,7 @@ class Simulation:
                         print("time {0}ms: Placed process {1}:".format(self.time, process.label))
 
                         self.prevProc = process
+                        self.nextIndex = self.getPrevProcIndex()
 
                         self.printMemory()
                         if self.fitAlgorithm == "Non-contiguous":
@@ -196,11 +198,20 @@ class Simulation:
 
         # Account for the last time increment
         if self.fitAlgorithm != "Non-contiguous":
-            print("time {0}ms: Simulator ended (Contiguous -- {1})".format(self.time-1, self.fitAlgorithm))
-            print("\n")
+            print("time {0}ms: Simulator ended (Contiguous -- {1})\n".format(self.time-1, self.fitAlgorithm))
         else:
             print("time {0}ms: Simulator ended (Non-contiguous)".format(self.time-1, self.fitAlgorithm))
 
+    """
+        Return a pointer to the location of the previous process
+    """
+    def getPrevProcIndex(self):
+        for i in range(0, len(self.memory)):
+            if (self.memory[i] == self.prevProc.label):
+                return i + self.prevProc.frames
+
+        return 0
+    
     """
         Clean memory and add frames back to the frame counter (framesLeft)
     """
@@ -209,6 +220,7 @@ class Simulation:
             if self.memory[i] == process.label:
                 self.memory[i] = '.'
         self.framesLeft += process.frames
+
 
     """
         Helper function to print the memory in required format
